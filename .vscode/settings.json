@@ -5,6 +5,8 @@
         "platform-conf.h": "c",
         "resolv.h": "c",
         "uip.h": "c",
-        "uipopt.h": "c"
-    }
+        "uipopt.h": "c",
+        "er-coap.h": "c"
+    },
+    "C_Cpp.intelliSenseEngineFallback": "Disabled"
 }

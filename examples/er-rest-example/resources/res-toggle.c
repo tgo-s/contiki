@@ -49,7 +49,7 @@ static void res_post_handler(void *request, void *response, uint8_t *buffer, uin
 
 /* A simple actuator example. Toggles the red led */
 RESOURCE(res_toggle,
-         "title=\"Red LED\";rt=\"Control\"",
+         "title=\"Led Controller: led = {1,2,3,0} \";rt=\"Control\"",
          NULL,
          res_post_handler,
          NULL,
@@ -58,6 +58,27 @@ RESOURCE(res_toggle,
 static void
 res_post_handler(void *request, void *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  leds_toggle(LEDS_RED);
+  const char *lenVal = NULL;
+  int32_t led;
+  /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
+  if (REST.get_post_variable(request, "led", &lenVal))
+  {
+    led = atoi(lenVal);
+  }
+  switch (led)
+  {
+    case 1:
+      leds_toggle(LEDS_RED);    
+      break;
+    case 2:
+      leds_toggle(LEDS_GREEN);
+      break;
+    case 3:
+      leds_toggle(LEDS_ALL);
+      break;
+    case 0:
+      leds_off(LEDS_ALL);
+      break;
+  }
 }
 #endif /* PLATFORM_HAS_LEDS */

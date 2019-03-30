@@ -59,19 +59,25 @@
 #define PRINTLLADDR(addr)
 #endif
 
+#ifdef CLOCK_CONF_SECOND
+#define CLOCK_SECOND CLOCK_CONF_SECOND
+#else
+#define CLOCK_SECOND (clock_time_t)32
+#endif
 /*
  * Resources to be activated need to be imported through the extern keyword.
  * The build system automatically compiles the resources in the corresponding sub-directory.
  */
 extern resource_t
-  res_hello,
-  res_mirror,
-  res_chunks,
-  res_separate,
-  res_push,
-  res_event,
-  res_sub,
-  res_b1_sep_b2;
+    res_hello,
+    res_mirror,
+    res_chunks,
+    res_separate,
+    res_push,
+    res_event,
+    res_sub,
+    res_b1_sep_b2,
+    res_utfprwsn_echo;
 #if PLATFORM_HAS_LEDS
 extern resource_t res_leds, res_toggle;
 #endif
@@ -103,8 +109,33 @@ extern resource_t res_sht11;
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
+/*---------------------------------------------------------------------------*/
+static void
+print_local_addresses(void)
+{
+  int i;
+  uint8_t state;
+
+  PRINTF("Client IPv6 addresses: ");
+  for (i = 0; i < UIP_DS6_ADDR_NB; i++)
+  {
+    state = uip_ds6_if.addr_list[i].state;
+    if (uip_ds6_if.addr_list[i].isused &&
+        (state == ADDR_TENTATIVE || state == ADDR_PREFERRED))
+    {
+      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+      PRINTF("\n");
+    }
+  }
+}
+/*---------------------------------------------------------------------------*/
+
 PROCESS_THREAD(er_example_server, ev, data)
 {
+
+  static struct etimer et;
+  uip_ipaddr_t ipaddr;
+
   PROCESS_BEGIN();
 
   PROCESS_PAUSE();
@@ -123,6 +154,23 @@ PROCESS_THREAD(er_example_server, ev, data)
   PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
   PRINTF("REST max chunk: %u\n", REST_MAX_CHUNK_SIZE);
 
+#if 0 //UIP_CONF_ROUTER
+  set_global_address();
+#else
+  etimer_set(&et, 2 * CLOCK_SECOND);
+  while (uip_ds6_get_global(ADDR_PREFERRED) == NULL)
+  {
+    PROCESS_WAIT_EVENT();
+    if (etimer_expired(&et))
+    {
+      PRINTF("Aguardando auto-configuracao de IP\n");
+      etimer_set(&et, 2 * CLOCK_SECOND);
+    }
+  }
+#endif
+
+  print_local_addresses();
+
   /* Initialize the REST engine. */
   rest_init_engine();
 
@@ -131,31 +179,33 @@ PROCESS_THREAD(er_example_server, ev, data)
    * WARNING: Activating twice only means alternate path, not two instances!
    * All static variables are the same for each URI path.
    */
-  rest_activate_resource(&res_hello, "test/hello");  
-/*  rest_activate_resource(&res_mirror, "debug/mirror"); */
-/*  rest_activate_resource(&res_chunks, "test/chunks"); */
-/*  rest_activate_resource(&res_separate, "test/separate"); */
+  rest_activate_resource(&res_hello, "test/hello");
+  /*  rest_activate_resource(&res_mirror, "debug/mirror"); */
+  /*  rest_activate_resource(&res_chunks, "test/chunks"); */
+  /*  rest_activate_resource(&res_separate, "test/separate"); */
   rest_activate_resource(&res_push, "test/push");
 /*  rest_activate_resource(&res_event, "sensors/button"); */
 /*  rest_activate_resource(&res_sub, "test/sub"); */
 /*  rest_activate_resource(&res_b1_sep_b2, "test/b1sepb2"); */
+  rest_activate_resource(&res_utfprwsn_echo, "utfprwsn/echo");
+
 #if PLATFORM_HAS_LEDS
-/*  rest_activate_resource(&res_leds, "actuators/leds"); */
+  /*  rest_activate_resource(&res_leds, "actuators/leds"); */
   rest_activate_resource(&res_toggle, "actuators/toggle");
 #endif
 #if PLATFORM_HAS_LIGHT
-  rest_activate_resource(&res_light, "sensors/light"); 
-  SENSORS_ACTIVATE(light_sensor);  
+  rest_activate_resource(&res_light, "sensors/light");
+  SENSORS_ACTIVATE(light_sensor);
 #endif
 #if PLATFORM_HAS_BATTERY
-  rest_activate_resource(&res_battery, "sensors/battery");  
-  SENSORS_ACTIVATE(battery_sensor);  
+  rest_activate_resource(&res_battery, "sensors/battery");
+  SENSORS_ACTIVATE(battery_sensor);
 #endif
 #if PLATFORM_HAS_TEMPERATURE
-  rest_activate_resource(&res_temperature, "sensors/temperature");  
-  SENSORS_ACTIVATE(temperature_sensor);  
+  rest_activate_resource(&res_temperature, "sensors/temperature");
+  SENSORS_ACTIVATE(temperature_sensor);
 #endif
-/*
+  /*
 #if PLATFORM_HAS_RADIO
   rest_activate_resource(&res_radio, "sensors/radio");  
   SENSORS_ACTIVATE(radio_sensor);  
@@ -167,10 +217,12 @@ PROCESS_THREAD(er_example_server, ev, data)
 */
 
   /* Define application-specific events here. */
-  while(1) {
+  while (1)
+  {
     PROCESS_WAIT_EVENT();
 #if PLATFORM_HAS_BUTTON
-    if(ev == sensors_event && data == &button_sensor) {
+    if (ev == sensors_event && data == &button_sensor)
+    {
       PRINTF("*******BUTTON*******\n");
 
       /* Call the event_handler for this application-specific event. */
@@ -180,7 +232,7 @@ PROCESS_THREAD(er_example_server, ev, data)
       res_separate.resume();
     }
 #endif /* PLATFORM_HAS_BUTTON */
-  }                             /* while (1) */
+  }    /* while (1) */
 
   PROCESS_END();
 }
