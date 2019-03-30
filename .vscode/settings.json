@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "leds.h": "c",
+        "contiki-conf.h": "c",
+        "platform-conf.h": "c",
+        "resolv.h": "c",
+        "uip.h": "c",
+        "uipopt.h": "c"
+    }
+}

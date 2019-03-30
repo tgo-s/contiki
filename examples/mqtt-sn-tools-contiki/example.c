@@ -147,11 +147,26 @@ publish_receiver(struct mqtt_sn_connection *mqc, const uip_ipaddr_t *source_addr
   if (uip_htons(incoming_packet.topic_id) == ctrl_topic_id) {
     //the new message interval will be read from the first byte of the received packet
     //send_interval = (uint8_t)incoming_packet.data[0] * CLOCK_CONF_SECOND;
+      uint32_t ctrl_val = atoi(incoming_packet.data);
+
+      switch (ctrl_val)
+      {
+        case 1:
+          leds_toggle(LEDS_GREEN);
+          break;
+        case 2: 
+          leds_toggle(LEDS_RED);
+          break;
+        case 3:
+          leds_toggle(LEDS_ALL);
+        case 0: 
+          leds_off(LEDS_ALL);
+          break;
+      }
       send_interval = 10 * CLOCK_CONF_SECOND;
   } else {
     printf("unknown publication received\n");
   }
-
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -458,7 +473,7 @@ PROCESS_THREAD(example_mqttsn_process, ev, data)
     {
       PROCESS_WAIT_EVENT();
       if(etimer_expired(&et)) {
-        leds_toggle(LEDS_ALL);
+        //leds_toggle(LEDS_ALL);
         etimer_restart(&et);
       }
     }

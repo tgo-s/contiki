@@ -1,2 +1,2 @@
-TARGET = srf06-cc26xx
-BOARD = launchpad/cc2650
+BOARD=launchpad/cc2650
+TARGET=srf06-cc26xx

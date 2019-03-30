@@ -71,7 +71,7 @@ static void
 timeout_handler(void)
 {
     char payload = 0;
-
+  
     buf[0] = payload;
     if(uip_ds6_get_global(ADDR_PREFERRED) == NULL) {
       PRINTF("Aguardando auto-configuracao de IP\n");
